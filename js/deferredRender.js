@@ -51,6 +51,7 @@
                 tex = R.pass_bloom.render(tex);
             }
             R.pass_final.render(tex);
+            R.pass_tile_deferred.render(state);
 
             // OPTIONAL TODO: call more postprocessing passes, if any
         }
@@ -177,6 +178,56 @@
         gl.disable(gl.BLEND);
 
         return R.pass_deferred.colorTex;
+    };
+
+    R.pass_tile_deferred.render = function(state) {
+        const TILE_SIZE = 32;
+
+        for (var i = 0; i < R.lights.length; i++) {
+            R.pass_tile_deferred.light_buffer[R.lights.length * 0 + i] = R.lights[i].pos[0];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 1 + i] = R.lights[i].pos[1];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 2 + i] = R.lights[i].pos[2];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 4 + i] = R.lights[i].col[0];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 5 + i] = R.lights[i].col[1];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 6 + i] = R.lights[i].col[2];
+            R.pass_tile_deferred.light_buffer[R.lights.length * 7 + i] = R.lights[i].rad;
+
+            var sc = getScissorForLight(state.viewMat, state.projMat, R.lights[i]);
+            if (sc) {
+                var tile_sc = [
+                    Math.floor(sc[0] / TILE_SIZE), 
+                    Math.floor(sc[1] / TILE_SIZE),
+                    Math.ceil((sc[0] + sc[2]) / TILE_SIZE), 
+                    Math.ceil((sc[1] + sc[3]) / TILE_SIZE)
+                ];
+                console.log(tile_sc)
+            }
+        }
+        gl.bindTexture(gl.TEXTURE_2D, R.pass_tile_deferred.light_tex);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, R.lights.length, 2, gl.RGBA, gl.FLOAT, R.pass_tile_deferred.light_buffer);
+        
+        gl.bindFramebuffer(gl.FRAMEBUFFER, R.pass_tile_deferred.light_mask)
+
+        gl.useProgram(R.progMapToTiles.prog)
+
+        gl.uniformMatrix4fv(R.progMapToTiles.viewMat, gl.FALSE, state.viewMat.elements);
+        gl.uniformMatrix4fv(R.progMapToTiles.projMat, gl.FALSE, state.projMat.elements);
+
+        renderFullScreenQuad(R.progMapToTiles)
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+        // gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        // gl.clearDepth(1.0);
+        // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // bindTexturesForLightPass(R.prog_BlinnPhong_PointLight_Tiled);
+
+        // gl.activeTexture(gl['TEXTURE' + R.NUM_GBUFFERS + 1]);
+        // gl.bindTexture(gl.TEXTURE_2D, R.progMapToTiles.tile_tex);
+        // gl.uniform1i(R.prog_BlinnPhong_PointLight_Tiled.u_tiles, R.NUM_GBUFFERS + 1);
+
     };
 
     /**
