@@ -29,7 +29,7 @@
     R.light_max = [14, 18, 6];
     R.light_dt = -0.03;
     R.LIGHT_RADIUS = 4.0;
-    R.NUM_LIGHTS = 20; // TODO: test with MORE lights!
+    R.NUM_LIGHTS = 200; // TODO: test with MORE lights!
     var setupLights = function() {
         Math.seedrandom(0);
 
@@ -117,30 +117,45 @@
         gl_draw_buffers.drawBuffersWEBGL([gl_draw_buffers.COLOR_ATTACHMENT0_WEBGL]);
 
 
-        R.pass_tile_deferred.light_tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, R.pass_tile_deferred.light_tex);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // R.pass_tile_deferred.light_tex = gl.createTexture();
+        // gl.bindTexture(gl.TEXTURE_2D, R.pass_tile_deferred.light_tex);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         // 7 components: x, y, z, r, g, b, radius
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, R.lights.length, 7, 0, gl.RGBA, gl.FLOAT, null);
-        R.pass_tile_deferred.light_buffer = new Float32Array(R.lights.length * 8);
+        // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, R.lights.length, 2, 0, gl.RGBA, gl.FLOAT, null);
+        // R.pass_tile_deferred.light_buffer = new Float32Array(R.lights.length * 8);
+        R.pass_tile_deferred.light_data = computeBuffer(R.lights.length, 7);
 
-        var TILE_SIZE = 32;
-        var nTILES = Math.ceil(width / TILE_SIZE) * Math.ceil(height / TILE_SIZE);
-        R.pass_tile_deferred.tile_size = TILE_SIZE;
-        R.pass_tile_deferred.nTiles = nTILES;
+        R.pass_tile_deferred.tile_size = 32;
+        R.pass_tile_deferred.nTiles = (
+            Math.ceil(width / R.pass_tile_deferred.tile_size) * 
+            Math.ceil(height / R.pass_tile_deferred.tile_size)
+        );
 
-        R.pass_tile_deferred.light_mask = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, R.pass_tile_deferred.light_mask);
+        console.log(Math.ceil(width / R.pass_tile_deferred.tile_size))
 
-        R.pass_tile_deferred.tile_tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, R.pass_tile_deferred.tile_tex);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        R.pass_tile_deferred.tile_data = computeBuffer(
+            R.pass_tile_deferred.nTiles,
+            R.lights.length
+        )
+
+        R.pass_tile_deferred.fbo = gl.createFramebuffer();
+        
+        R.pass_tile_deferred.fboOut = gl.createFramebuffer();
+        R.pass_tile_deferred.colorTex = createAndBindColorTargetTexture(
+            R.pass_tile_deferred.fboOut, gl_draw_buffers.COLOR_ATTACHMENT0_WEBGL);
+        
+        // R.pass_tile_deferred.light_mask = gl.createFramebuffer();
+        // gl.bindFramebuffer(gl.FRAMEBUFFER, R.pass_tile_deferred.light_mask);
+
+        // R.pass_tile_deferred.tile_tex = gl.createTexture();
+        // gl.bindTexture(gl.TEXTURE_2D, R.pass_tile_deferred.tile_tex);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         // 2 components: offset, count
         // gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, 
         //          R.lights.length, 2, 0, gl.DEPTH_COMPONENT, 
@@ -150,12 +165,12 @@
         //          ext_depth_tex.UNSIGNED_INT_24_8_WEBGL, null);
         // gl.framebufferTexture2D(
         //     gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D,  R.pass_tile_deferred.tile_tex, 0);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, nTILES, R.lights.length / 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,  R.pass_tile_deferred.tile_tex, 0);
+        // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, nTILES, R.lights.length / 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        // gl.framebufferTexture2D(
+        //     gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,  R.pass_tile_deferred.tile_tex, 0);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.bindTexture(gl.TEXTURE_2D, null);
+        // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        // gl.bindTexture(gl.TEXTURE_2D, null);
         
     };
 
@@ -237,6 +252,18 @@
             p.u_lightCol = gl.getUniformLocation(p.prog, 'u_lightCol');
             p.u_lightRad = gl.getUniformLocation(p.prog, 'u_lightRad');
             R.prog_BlinnPhong_PointLight = p;
+        });
+
+        loadDeferredProgram('blinnphong-pointlight-tiled', function(p) {
+            p.u_nlights = gl.getUniformLocation(p.prog, 'u_nlights')
+            p.u_ntiles = gl.getUniformLocation(p.prog, 'u_ntiles')
+            p.u_tilesize = gl.getUniformLocation(p.prog, 'u_tilesize')
+            p.u_resolution = gl.getUniformLocation(p.prog, 'u_resolution')
+            p.u_cameraPos = gl.getUniformLocation(p.prog, 'u_cameraPos');
+            p.u_lightbuffer = gl.getUniformLocation(p.prog, 'u_lightbuffer');
+            p.u_tilebuffer = gl.getUniformLocation(p.prog, 'u_tilebuffer');
+            p.u_debug = gl.getUniformLocation(p.prog, 'u_debug');
+            R.prog_BlinnPhong_PointLight_Tiled = p;
         });
 
         loadDeferredProgram('debug', function(p) {
