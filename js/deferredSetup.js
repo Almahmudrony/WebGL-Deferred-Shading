@@ -1,3 +1,15 @@
+function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 (function() {
     'use strict';
 
@@ -10,7 +22,7 @@
     R.pass_final = {};
     R.lights = [];
 
-    R.NUM_GBUFFERS = 4;
+    R.NUM_GBUFFERS = 2;
 
     /**
      * Set up the deferred pipeline framebuffer objects and textures.
@@ -29,7 +41,7 @@
     R.light_max = [14, 18, 6];
     R.light_dt = -0.03;
     R.LIGHT_RADIUS = 4.0;
-    R.NUM_LIGHTS = 200; // TODO: test with MORE lights!
+    R.NUM_LIGHTS = parseInt(getParameterByName("lights")) || 200;
     var setupLights = function() {
         Math.seedrandom(0);
 
