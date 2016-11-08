@@ -53,10 +53,10 @@ void main() {
     vec4 v1 = texture2D(u_lightbuffer, vec2(uv, 0.0));
     // vec4 v2 = texture2D(u_lightbuffer, vec2(uv, 0.5));
     // vec3 col = v2.rgb;
-    float rad = v1[3];
+    float rad = v1[3] + 0.5; // increase this so floating point doesn't bite us
     vec4 pos = u_viewMat * vec4(v1.xyz, 1);
 
-    if (pos.z > 0.0) pos.z = -0.01;
+    if (pos.z > -0.01) pos.z = -0.01;
 
     vec4 p1 = u_projMat * pos;
     vec4 p2 = u_projMat * pos;
@@ -76,7 +76,7 @@ void main() {
 
     for (int i = 0; i < 8; ++i) {
       vec4 p = pos + offsets[i] * rad;
-      if (p.z > 0.0) p.z = -0.01;
+      if (p.z > -0.01) p.z = -0.01;
       p = u_projMat * p;
       p /= p.w;
       if (p.x < p1.x) p1.x = p.x;

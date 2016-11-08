@@ -42,11 +42,11 @@ void main() {
     // Extract needed properties from the g-buffers into local variables
     // These definitions are suggested for starting out, but you will probably want to change them.
     vec3 pos = gb0.xyz;     // World-space position
-    vec3 geomnor = gb1.xyz;  // Normals of the geometry as defined, without normal mapping
+    // vec3 geomnor = gb1.xyz;  // Normals of the geometry as defined, without normal mapping
     vec3 colmap = gb2.rgb;  // The color map - unlit "albedo" (surface color)
-    vec3 normap = gb3.xyz;  // The raw normal map (normals relative to the surface they're on)
-    vec3 nor = applyNormalMap (geomnor, normap);     // The true normals as we want to light them - with the normal map applied to the geometry normals (applyNormalMap above)
-
+    // vec3 normap = gb3.xyz;  // The raw normal map (normals relative to the surface they're on)
+    // vec3 nor = applyNormalMap (geomnor, normap);     // The true normals as we want to light them - with the normal map applied to the geometry normals (applyNormalMap above)
+    vec3 nor = gb1.xyz;
 
     vec2 tileDim = ceil(u_resolution / u_tilesize);
     vec2 t_xy = floor(v_uv * u_resolution / u_tilesize);
@@ -88,7 +88,7 @@ void main() {
             }
         }
     }
-    if (u_debug > 0) cumul.x += count / u_nlights;
+    if (u_debug > 0) cumul = vec3(count / u_nlights);
     
 
     gl_FragColor = vec4(cumul, 1.0);
